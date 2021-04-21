@@ -1,0 +1,156 @@
+/*Время проезда лифтом одного этажа примем равным 2 сек.
+Среднее время высадки/посадки в лифт, заложенное в программу - 10 сек.*/
+
+#include <iostream>
+#include <chrono>
+#include <thread>
+#include <list>
+using namespace std;
+using namespace std::this_thread;
+
+class lift
+{
+public:
+    int maxload;
+    int now;
+    int load;
+    list <int> mylist;
+    list <int> ::iterator it;
+
+    lift(int max)
+    {
+        maxload = max;
+        now = 1 + rand() % 25;
+        for (bool temp = rand() % 2; temp; temp = rand() % 2)
+            push(1 + rand() % 25);
+        if (ismoving())
+            load = rand() % max;
+    }
+    bool push(int a)
+    {
+        int n = now;
+        if (mylist.begin() == mylist.end())
+        {
+            mylist.push_back(a);
+            return 1;
+        }
+        else
+        {
+            bool temp = 1;
+            bool k = (n < *mylist.begin());
+            for (it = mylist.begin(); it != mylist.end(); it++)
+            {
+                if ((a == *it) || (a == n))
+                    return 0;
+                else if ((k && (a>n) && ((a<*it) || (*it<n))) || (k && (a<n) && (*it<a))
+                    || (!k && (a < n) && ((a > *it) || (*it > n))) || (!k && (a > n) && (*it > a)))
+                {
+                    mylist.insert(it, a);
+                    return 1;
+                }
+                k = (n < *it);
+                n = *it;
+            }
+            mylist.push_back(a);
+            return 1;
+        }
+    }
+    bool ismoving()
+    {
+        return mylist.begin() != mylist.end();
+    }
+    void print(int i)
+    {
+        cout << i + 1 << " лифт ";
+        if (ismoving())
+        {
+            cout << "находится на " << now << " эт., очередь движения: ";
+            for (it = mylist.begin(); it != mylist.end(); it++)
+                cout << (*it) << " ";
+            cout << " загрузка " << load << "/" << maxload << endl;
+        }
+        else cout << "находится на " << now << " эт., не движется" << endl;
+    }
+    int time(int f)
+    {
+        int n = now;
+        int sum = 0;
+        bool temp = 0;
+        if (push(f))
+            temp = 1;
+        for (it = mylist.begin(); *it != f; it++)
+        {
+            sum += abs(n - *it)*2 + 10;
+            n = *it;
+        }
+        sum += abs(n - *it)*2;
+        if (temp)
+            mylist.remove(f);
+        return sum;
+    }
+    void move(int f)
+    {
+        push(f);
+        for (it = mylist.begin(); *it != f; it++)
+        {
+            mylist.pop_front();
+        }
+        now = f;
+        mylist.remove(f);
+    }
+};
+
+void vvod(int* f)
+{
+    bool temp;
+    do
+    {
+        temp = false;
+        cin >> *f;
+        if ((*f > 25) || (*f < 1))
+        {
+            cout << "Ошибка! ";
+            temp = true;
+        }
+    } while (temp);
+}
+
+int search(lift * a, int f)
+{
+    int min = a[0].time(f);
+    int imin = 0;
+    for (int i = 1; i < 4; i++)
+        if ((a[i].time(f) < min) && (a[i].maxload - a[i].load > 100))
+        {
+            min = a[i].time(f);
+            imin = i;
+        }
+    return imin;
+}
+
+int main()
+{
+    setlocale(LC_ALL, "Russian");
+    srand(time(0));
+    lift a1(400);
+    lift a2(400);
+    lift a3(1000);
+    lift a4(1000);
+    lift a[4] = { a1,a2,a3,a4 };
+    for (int i = 0; i < 4; i++)
+        a[i].print(i);
+    int floor;
+    cout << "Введите ваш этаж: ";
+    vvod(&floor);
+    int imin = search(a, floor);
+    cout << "К вам едет " << imin + 1 << " лифт! Время прибытия ~ " << a[imin].time(floor) << " сек..." << endl;
+    a[imin].move(floor);
+    sleep_for(2s);
+    a[imin].print(imin);
+    cout << "Введите этаж назначения: ";
+    vvod(&floor);
+    cout << "Время в пути ~ " << a[imin].time(floor) << " сек..." << endl;
+    sleep_for(2s);
+    cout << "Вы приехали! Удачного дня!";
+    return 0;
+}
